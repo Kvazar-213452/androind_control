@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.background
 
 class MainActivity : ComponentActivity() {
     private lateinit var mediaPlayer: MediaPlayer
@@ -35,13 +36,15 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black), // Чорний фон
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "viva 213452",
                     style = TextStyle(
-                        color = Color.Black,
+                        color = Color.Red, // Червоний текст
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold
                     )

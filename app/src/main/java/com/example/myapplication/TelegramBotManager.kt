@@ -62,8 +62,16 @@ class TelegramBotManager(
                                             sendMessage(chatId, "🛑 Вимикаю додаток...", botToken)
                                             exitCallback()
                                         }
-                                        text.startsWith("#ping", ignoreCase = true) -> {
-                                            sendMessage(chatId, "jsw", botToken)
+                                        text.startsWith("#help", ignoreCase = true) -> {
+                                            sendMessage(chatId, """
+                                                ====213452====
+                                                #help - інфа бота
+                                                #music [число]
+                                                #spin [число] - статичні файли !4
+                                                #data - data
+                                                #off - off - далі треба написати #yes
+                                                #up_music [індекс] - вмісті з mp3 файлом
+                                            """.trimIndent(), botToken)
                                         }
                                         text.startsWith("#music", ignoreCase = true) -> {
                                             handleMusicCommand(text, chatId, botToken)
@@ -139,36 +147,6 @@ class TelegramBotManager(
         botJob?.cancel()
     }
 
-    private fun processMessage(message: org.json.JSONObject, botToken: String) {
-        val chatId = message.getJSONObject("chat").getLong("id")
-
-        if (message.has("text")) {
-            val text = message.getString("text").trim()
-
-            when {
-                text.startsWith("#ping", ignoreCase = true) -> {
-                    sendMessage(chatId, "jsw", botToken)
-                }
-                text.startsWith("#music", ignoreCase = true) -> {
-                    handleMusicCommand(text, chatId, botToken)
-                }
-                text.startsWith("#data", ignoreCase = true) -> {
-                    val dbContent = readDbFile()
-                    sendMessage(chatId, "📁 Вміст db.json:\n$dbContent", botToken)
-                }
-            }
-        }
-
-        if ((message.has("audio") ||
-                    (message.has("document") && message.getJSONObject("document")
-                        .getString("mime_type").contains("audio"))) &&
-            message.has("caption") && message.getString("caption")
-                .contains("#up_music")) {
-
-            processMusicUpload(message, chatId, botToken)
-        }
-    }
-
     private fun handleMusicCommand(text: String, chatId: Long, botToken: String) {
         val parts = text.split("\\s+".toRegex())
         if (parts.size >= 2) {
@@ -194,14 +172,23 @@ class TelegramBotManager(
                 val musicFile = File(filePath)
 
                 if (musicFile.exists()) {
-                    if (mediaPlayer.isPlaying) {
-                        mediaPlayer.stop()
+                    android.os.Handler(context.mainLooper).post {
+                        try {
+                            if (mediaPlayer.isPlaying) {
+                                mediaPlayer.stop()
+                            }
+                            mediaPlayer.reset()
+
+                            // Додаємо перевірку дозволів та правильний спосіб відкриття файлу
+                            mediaPlayer.setDataSource(filePath)
+                            mediaPlayer.prepare()
+                            mediaPlayer.start()
+                            sendMessage(chatId, "🔊 Програю музику #$musicNum: ${musicFile.name}", botToken)
+                        } catch (e: Exception) {
+                            Log.e("MusicPlayer", "Помилка програвання", e)
+                            sendMessage(chatId, "❌ Помилка програвання: ${e.localizedMessage}", botToken)
+                        }
                     }
-                    mediaPlayer.reset()
-                    mediaPlayer.setDataSource(filePath)
-                    mediaPlayer.prepare()
-                    mediaPlayer.start()
-                    sendMessage(chatId, "🔊 Програю музику #$musicNum: ${musicFile.name}", botToken)
                 } else {
                     sendMessage(chatId, "❌ Файл музики #$musicNum не знайдено", botToken)
                 }
@@ -209,7 +196,8 @@ class TelegramBotManager(
                 sendMessage(chatId, "❌ Музика з номером #$musicNum не знайдена в базі", botToken)
             }
         } catch (e: Exception) {
-            sendMessage(chatId, "❌ Помилка програвання: ${e.message}", botToken)
+            Log.e("MusicPlayer", "Помилка читання бази", e)
+            sendMessage(chatId, "❌ Помилка читання бази даних: ${e.localizedMessage}", botToken)
         }
     }
 
